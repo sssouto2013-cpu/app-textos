@@ -1,129 +1,92 @@
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap');
-  @import url('https://fonts.googleapis.com/icon?family=Material+Icons');
-
-  :root {
-    --bg: #eef2f7;
-    --panel: #ffffff;
-    --text: #2c3e50;
-    --accent: #3498db;
-    --accent-hover: #2980b9;
-    --border: #d0d7e2;
-    --highlight: yellow;
-    --shadow: 0 4px 10px #0002;
-  }
-
-  /* MODO ESCURO */
-  [data-theme="dark"] {
-    --bg: #1e1e1e;
-    --panel: #2a2a2a;
-    --text: #e0e0e0;
-    --accent: #5dade2;
-    --accent-hover: #3498db;
-    --border: #444;
-    --highlight: #ffeb3b;
-    --shadow: 0 4px 12px #0005;
-  }
-
   body {
-    font-family: 'Inter', sans-serif;
+    font-family: Arial, sans-serif;
     margin: 0;
     padding: 20px;
-    background: var(--bg);
-    color: var(--text);
-    transition: background 0.3s, color 0.3s;
+    background: #eef2f7;
+    color: #333;
   }
 
   h1 {
+    margin-bottom: 20px;
     text-align: center;
-    margin-bottom: 25px;
-    font-weight: 600;
-    animation: fadeIn 0.6s ease;
+    color: #2c3e50;
   }
 
   .panel {
-    background: var(--panel);
+    background: #fff;
     padding: 20px;
-    border-radius: 14px;
-    box-shadow: var(--shadow);
+    border-radius: 12px;
+    box-shadow: 0 4px 10px #0002;
     margin-bottom: 25px;
-    animation: fadeIn 0.4s ease;
   }
 
-  textarea, input[type="text"], select {
+  textarea {
     width: 100%;
-    padding: 12px;
-    border-radius: 10px;
-    border: 1px solid var(--border);
-    margin-bottom: 12px;
-    background: var(--panel);
-    color: var(--text);
-    transition: 0.3s;
+    min-height: 140px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    padding: 10px;
   }
 
-  textarea:focus, input:focus, select:focus {
-    border-color: var(--accent);
-    outline: none;
-    box-shadow: 0 0 0 2px var(--accent + 33);
+  input[type="text"], select {
+    width: 100%;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    margin-bottom: 10px;
   }
 
   button {
-    background: var(--accent);
+    background: #3498db;
     color: white;
     border: none;
-    padding: 10px 16px;
-    border-radius: 10px;
+    padding: 10px 14px;
+    border-radius: 8px;
     cursor: pointer;
     margin-top: 8px;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-weight: 600;
-    transition: 0.25s;
+    transition: 0.2s;
   }
 
   button:hover {
-    background: var(--accent-hover);
-    transform: translateY(-2px);
+    background: #2980b9;
   }
 
-  .list, .results {
-    border: 1px solid var(--border);
-    padding: 12px;
-    max-height: 240px;
+  .list {
+    border: 1px solid #ddd;
+    padding: 10px;
+    max-height: 220px;
     overflow-y: auto;
-    background: var(--panel);
-    border-radius: 10px;
-    animation: fadeIn 0.4s ease;
+    background: #fafafa;
+    border-radius: 8px;
+  }
+
+  .results {
+    border: 1px solid #ddd;
+    padding: 10px;
+    max-height: 260px;
+    overflow-y: auto;
+    background: #fafafa;
+    border-radius: 8px;
   }
 
   .highlight {
-    background: var(--highlight);
+    background: yellow;
     font-weight: bold;
   }
 
   .text-block {
     margin-bottom: 15px;
-    border-bottom: 1px dashed var(--border);
+    border-bottom: 1px dashed #ccc;
     padding-bottom: 10px;
   }
 
-  #themeToggle {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    background: var(--accent);
-    border-radius: 50%;
-    width: 48px;
-    height: 48px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    box-shadow: var(--shadow);
-  }
-
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
+  #iframeWarning {
+    background: #ffdddd;
+    padding: 10px;
+    border: 1px solid #cc0000;
+    margin-bottom: 20px;
+    display: none;
+    border-radius: 8px;
   }
 </style>
