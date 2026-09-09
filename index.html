@@ -1,321 +1,129 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-<meta charset="UTF-8">
-<title>App de Textos (Google Sites)</title>
 <style>
-  body { font-family: Arial; margin: 0; padding: 20px; background: #f5f5f5; }
-  h1 { margin-bottom: 10px; }
-  .panel { background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 0 5px #0002; margin-bottom: 20px; }
-  textarea { width: 100%; min-height: 120px; }
-  input[type="text"], select { width: 100%; padding: 6px; }
-  button { margin-top: 6px; padding: 6px 10px; cursor: pointer; }
-  .list { border: 1px solid #ddd; padding: 8px; max-height: 200px; overflow-y: auto; background: #fafafa; }
-  .results { border: 1px solid #ddd; padding: 8px; max-height: 250px; overflow-y: auto; background: #fafafa; }
-  .highlight { background: yellow; font-weight: bold; }
-  .text-block { margin-bottom: 12px; border-bottom: 1px dashed #ccc; padding-bottom: 8px; }
-  #iframeWarning { background: #ffdddd; padding: 10px; border: 1px solid #cc0000; margin-bottom: 20px; display: none; }
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap');
+  @import url('https://fonts.googleapis.com/icon?family=Material+Icons');
+
+  :root {
+    --bg: #eef2f7;
+    --panel: #ffffff;
+    --text: #2c3e50;
+    --accent: #3498db;
+    --accent-hover: #2980b9;
+    --border: #d0d7e2;
+    --highlight: yellow;
+    --shadow: 0 4px 10px #0002;
+  }
+
+  /* MODO ESCURO */
+  [data-theme="dark"] {
+    --bg: #1e1e1e;
+    --panel: #2a2a2a;
+    --text: #e0e0e0;
+    --accent: #5dade2;
+    --accent-hover: #3498db;
+    --border: #444;
+    --highlight: #ffeb3b;
+    --shadow: 0 4px 12px #0005;
+  }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    margin: 0;
+    padding: 20px;
+    background: var(--bg);
+    color: var(--text);
+    transition: background 0.3s, color 0.3s;
+  }
+
+  h1 {
+    text-align: center;
+    margin-bottom: 25px;
+    font-weight: 600;
+    animation: fadeIn 0.6s ease;
+  }
+
+  .panel {
+    background: var(--panel);
+    padding: 20px;
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+    margin-bottom: 25px;
+    animation: fadeIn 0.4s ease;
+  }
+
+  textarea, input[type="text"], select {
+    width: 100%;
+    padding: 12px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    margin-bottom: 12px;
+    background: var(--panel);
+    color: var(--text);
+    transition: 0.3s;
+  }
+
+  textarea:focus, input:focus, select:focus {
+    border-color: var(--accent);
+    outline: none;
+    box-shadow: 0 0 0 2px var(--accent + 33);
+  }
+
+  button {
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 10px;
+    cursor: pointer;
+    margin-top: 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 600;
+    transition: 0.25s;
+  }
+
+  button:hover {
+    background: var(--accent-hover);
+    transform: translateY(-2px);
+  }
+
+  .list, .results {
+    border: 1px solid var(--border);
+    padding: 12px;
+    max-height: 240px;
+    overflow-y: auto;
+    background: var(--panel);
+    border-radius: 10px;
+    animation: fadeIn 0.4s ease;
+  }
+
+  .highlight {
+    background: var(--highlight);
+    font-weight: bold;
+  }
+
+  .text-block {
+    margin-bottom: 15px;
+    border-bottom: 1px dashed var(--border);
+    padding-bottom: 10px;
+  }
+
+  #themeToggle {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: var(--accent);
+    border-radius: 50%;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: var(--shadow);
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
 </style>
-</head>
-<body>
-
-<h1>Busca de Palavras em Textos (TXT)</h1>
-
-<div id="iframeWarning">
-  ⚠ O Google Sites pode bloquear o acesso à pasta.<br>
-  Clique abaixo para abrir o app em nova aba:
-  <br><br>
-  <button onclick="window.open(window.location.href, '_blank')">Abrir em nova aba</button>
-</div>
-
-<div class="panel">
-  <h2>Armazenamento</h2>
-  <label>Local de armazenamento:</label>
-  <select id="storageSelect">
-    <option value="local">Local (navegador)</option>
-    <option value="folder">Pasta (OneDrive / Google Drive)</option>
-  </select>
-  <button id="chooseFolderBtn">Escolher pasta</button>
-</div>
-
-<div class="panel">
-  <h2>Gerenciar textos</h2>
-
-  <label>Título:</label>
-  <input type="text" id="textTitle">
-
-  <label>Palavras‑chave (vírgulas):</label>
-  <input type="text" id="textKeywords">
-
-  <label>Conteúdo:</label>
-  <textarea id="textContent"></textarea>
-
-  <button id="saveTextBtn">Salvar texto</button>
-  <button id="clearTextFormBtn">Limpar formulário</button>
-  <button id="loadTextsBtn">Carregar textos da pasta</button>
-  <button id="saveAllTextsBtn">Salvar todos os textos</button>
-
-  <h3>Textos carregados</h3>
-  <div id="textsList" class="list"></div>
-</div>
-
-<div class="panel">
-  <h2>Teste</h2>
-
-  <h3>Escolher textos</h3>
-  <div id="textsSelectList" class="list"></div>
-
-  <button id="startTestBtn">Iniciar teste</button>
-  <button id="showOccurrencesBtn" disabled>Mostrar ocorrências</button>
-  <button id="endTestBtn" disabled>Encerrar teste</button>
-
-  <h3>Resultados</h3>
-  <div id="results" class="results"></div>
-</div>
-
-<script>
-let storageMode = "local";
-let folderHandle = null;
-let texts = [];
-let currentTest = { active: false, textIds: [] };
-
-const LOCAL_KEY = "app_texts_txt";
-
-// Detecta se está dentro de iframe (Google Sites)
-if (window.self !== window.top) {
-  document.getElementById("iframeWarning").style.display = "block";
-}
-
-// ---------------- LOCAL STORAGE ----------------
-function saveLocalTexts(texts) {
-  localStorage.setItem(LOCAL_KEY, JSON.stringify(texts));
-}
-function loadLocalTexts() {
-  const raw = localStorage.getItem(LOCAL_KEY);
-  return raw ? JSON.parse(raw) : [];
-}
-
-// ---------------- ESCOLHER PASTA ----------------
-async function escolherPasta() {
-  try {
-    folderHandle = await window.showDirectoryPicker();
-    alert("Pasta selecionada!");
-  } catch (err) {
-    alert("O navegador bloqueou o acesso à pasta.\nAbra o app em nova aba.");
-  }
-}
-
-// ---------------- SALVAR TXT ----------------
-async function salvarTextosNaPasta(texts) {
-  if (!folderHandle) {
-    alert("Escolha a pasta primeiro.");
-    return;
-  }
-
-  for (const t of texts) {
-    const safeName = (t.title || "Sem_Titulo").replace(/[^a-z0-9]/gi, "_");
-    const conteudoTXT =
-      `#TITULO: ${t.title}\n` +
-      `#PALAVRAS: ${t.keywords.join(", ")}\n\n` +
-      t.content;
-
-    const fileHandle = await folderHandle.getFileHandle(`${safeName}.txt`, { create: true });
-    const writable = await fileHandle.createWritable();
-    await writable.write(conteudoTXT);
-    await writable.close();
-  }
-
-  alert("Arquivos TXT salvos!");
-}
-
-// ---------------- CARREGAR TXT ----------------
-async function carregarTextosDaPasta() {
-  if (!folderHandle) {
-    alert("Escolha a pasta primeiro.");
-    return [];
-  }
-
-  const texts = [];
-
-  for await (const entry of folderHandle.values()) {
-    if (entry.kind === "file" && entry.name.endsWith(".txt")) {
-      const file = await entry.getFile();
-      const raw = await file.text();
-      const linhas = raw.split("\n");
-
-      const titulo = linhas[0].replace("#TITULO:", "").trim();
-      const palavras = linhas[1]
-        .replace("#PALAVRAS:", "")
-        .split(",")
-        .map(p => p.trim());
-
-      const conteudo = linhas.slice(2).join("\n");
-
-      texts.push({ title: titulo, keywords: palavras, content: conteudo });
-    }
-  }
-
-  return texts;
-}
-
-// ---------------- SALVAR / CARREGAR ----------------
-async function salvarTextos(textsToSave) {
-  if (storageMode === "local") {
-    saveLocalTexts(textsToSave);
-    alert("Textos salvos localmente!");
-  } else {
-    await salvarTextosNaPasta(textsToSave);
-  }
-}
-
-async function carregarTextos() {
-  if (storageMode === "local") {
-    return loadLocalTexts();
-  } else {
-    return await carregarTextosDaPasta();
-  }
-}
-
-// ---------------- ELEMENTOS ----------------
-const storageSelectEl = document.getElementById("storageSelect");
-const chooseFolderBtn = document.getElementById("chooseFolderBtn");
-
-const textTitleEl = document.getElementById("textTitle");
-const textKeywordsEl = document.getElementById("textKeywords");
-const textContentEl = document.getElementById("textContent");
-
-const saveTextBtn = document.getElementById("saveTextBtn");
-const clearTextFormBtn = document.getElementById("clearTextFormBtn");
-const loadTextsBtn = document.getElementById("loadTextsBtn");
-const saveAllTextsBtn = document.getElementById("saveAllTextsBtn");
-
-const textsListEl = document.getElementById("textsList");
-const textsSelectListEl = document.getElementById("textsSelectList");
-
-const startTestBtn = document.getElementById("startTestBtn");
-const showOccurrencesBtn = document.getElementById("showOccurrencesBtn");
-const endTestBtn = document.getElementById("endTestBtn");
-const resultsEl = document.getElementById("results");
-
-// ---------------- EVENTOS ----------------
-storageSelectEl.onchange = (e) => storageMode = e.target.value;
-chooseFolderBtn.onclick = escolherPasta;
-
-saveTextBtn.onclick = () => {
-  const title = textTitleEl.value.trim();
-  const keywords = textKeywordsEl.value.split(",").map(k => k.trim());
-  const content = textContentEl.value;
-
-  if (!title || !content) {
-    alert("Título e conteúdo são obrigatórios.");
-    return;
-  }
-
-  texts.push({ title, keywords, content });
-  renderTexts();
-  alert("Texto adicionado. Use 'Salvar todos os textos' para gravar.");
-};
-
-clearTextFormBtn.onclick = () => {
-  textTitleEl.value = "";
-  textKeywordsEl.value = "";
-  textContentEl.value = "";
-};
-
-loadTextsBtn.onclick = async () => {
-  texts = await carregarTextos();
-  renderTexts();
-  alert("Textos carregados!");
-};
-
-saveAllTextsBtn.onclick = async () => {
-  await salvarTextos(texts);
-};
-
-// ---------------- RENDER ----------------
-function renderTexts() {
-  textsListEl.innerHTML = "";
-  textsSelectListEl.innerHTML = "";
-
-  texts.forEach((t, index) => {
-    const div = document.createElement("div");
-    div.textContent = `${index} - ${t.title}`;
-    textsListEl.appendChild(div);
-
-    const label = document.createElement("label");
-    const chk = document.createElement("input");
-    chk.type = "checkbox";
-    chk.value = index;
-    label.appendChild(chk);
-    label.appendChild(document.createTextNode(" " + t.title));
-    textsSelectListEl.appendChild(label);
-  });
-}
-
-// ---------------- TESTE ----------------
-startTestBtn.onclick = () => {
-  const selectedTextIds = Array.from(
-    textsSelectListEl.querySelectorAll("input[type='checkbox']:checked")
-  ).map(cb => Number(cb.value));
-
-  if (selectedTextIds.length === 0) {
-    alert("Selecione pelo menos um texto.");
-    return;
-  }
-
-  currentTest.active = true;
-  currentTest.textIds = selectedTextIds;
-
-  showOccurrencesBtn.disabled = false;
-  endTestBtn.disabled = false;
-
-  resultsEl.innerHTML = "<p>Teste iniciado.</p>";
-};
-
-endTestBtn.onclick = () => {
-  currentTest.active = false;
-  currentTest.textIds = [];
-  showOccurrencesBtn.disabled = true;
-  endTestBtn.disabled = true;
-  resultsEl.innerHTML = "<p>Teste encerrado.</p>";
-};
-
-function highlightOccurrences(text, keywords) {
-  let result = text;
-  keywords.forEach(kw => {
-    const escaped = kw.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const regex = new RegExp(escaped, "gi");
-    result = result.replace(regex, m => `<span class="highlight">${m}</span>`);
-  });
-  return result;
-}
-
-showOccurrencesBtn.onclick = () => {
-  if (!currentTest.active) {
-    alert("Nenhum teste ativo.");
-    return;
-  }
-
-  resultsEl.innerHTML = "";
-
-  currentTest.textIds.forEach(id => {
-    const t = texts[id];
-
-    const block = document.createElement("div");
-    block.className = "text-block";
-
-    block.innerHTML =
-      `<strong>${t.title}</strong><br>` +
-      highlightOccurrences(t.content, t.keywords);
-
-    resultsEl.appendChild(block);
-  });
-};
-
-// ---------------- INICIALIZAÇÃO ----------------
-texts = loadLocalTexts();
-renderTexts();
-</script>
-
-</body>
-</html>
