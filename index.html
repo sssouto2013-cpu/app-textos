@@ -247,7 +247,7 @@ async function salvarTextosNaPasta(texts) {
   alert("Arquivos TXT salvos!");
 }
 
-/* CARREGAR TXT */
+/* CARREGAR TXT (AGORA ACEITA QUALQUER ARQUIVO .TXT) */
 async function carregarTextosDaPasta() {
   if (!folderHandle) {
     alert("Escolha a pasta primeiro.");
@@ -255,6 +255,7 @@ async function carregarTextosDaPasta() {
   }
 
   const texts = [];
+  let contadorAuto = 1;
 
   for await (const entry of folderHandle.values()) {
     if (entry.kind === "file" && entry.name.endsWith(".txt")) {
@@ -262,13 +263,37 @@ async function carregarTextosDaPasta() {
       const raw = await file.text();
       const linhas = raw.split("\n");
 
-      const titulo = linhas[0].replace("#TITULO:", "").trim();
-      const palavras = linhas[1]
-        .replace("#PALAVRAS:", "")
-        .split(",")
-        .map(p => p.trim());
+      let titulo = "";
+      let palavras = [];
+      let conteudo = "";
 
-      const conteudo = linhas.slice(2).join("\n");
+      /* Caso 1: arquivo segue o padrão do app */
+      if (linhas[0].startsWith("#TITULO:")) {
+        titulo = linhas[0].replace("#TITULO:", "").trim();
+
+        palavras = linhas[1]
+          .replace("#PALAVRAS:", "")
+          .split(",")
+          .map(p => p.trim());
+
+        conteudo = linhas.slice(2).join("\n");
+      }
+
+      /* Caso 2: arquivo NÃO segue o padrão */
+      else {
+        titulo = entry.name.replace(".txt", "");
+
+        conteudo = raw.trim();
+
+        // Gera palavra-chave automática
+        const palavrasTexto = conteudo.split(/\s+/);
+
+        if (palavrasTexto.length > 0) {
+          palavras = [palavrasTexto[0]]; // primeira palavra
+        } else {
+          palavras = ["sem_palavra"];
+        }
+      }
 
       texts.push({ title: titulo, keywords: palavras, content: conteudo });
     }
