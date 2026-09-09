@@ -247,10 +247,17 @@ async function salvarTextosNaPasta(texts) {
   alert("Arquivos TXT salvos!");
 }
 
-/* CARREGAR TXT — AGORA ACEITA QUALQUER TXT */
+/* CARREGAR TXT — AGORA LÊ ARQUIVOS ANTIGOS E NOVOS */
 async function carregarTextosDaPasta() {
   if (!folderHandle) {
     alert("Escolha a pasta primeiro.");
+    return [];
+  }
+
+  // Solicita permissão explícita para ler TODOS os arquivos da pasta
+  const perm = await folderHandle.requestPermission({ mode: "readwrite" });
+  if (perm !== "granted") {
+    alert("Permissão negada. O aplicativo não pode ler os arquivos.");
     return [];
   }
 
@@ -296,6 +303,7 @@ async function carregarTextosDaPasta() {
 
   return texts;
 }
+
 
 /* SALVAR / CARREGAR */
 async function salvarTextos(textsToSave) {
