@@ -4,10 +4,8 @@
 <meta charset="UTF-8">
 <title>App de Textos Profissional</title>
 
-<!-- Ícones modernos -->
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 
-<!-- Tema + Estilo profissional -->
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap');
 
@@ -22,7 +20,6 @@
     --shadow: 0 4px 10px #0002;
   }
 
-  /* MODO ESCURO */
   [data-theme="dark"] {
     --bg: #1e1e1e;
     --panel: #2a2a2a;
@@ -68,12 +65,6 @@
     background: var(--panel);
     color: var(--text);
     transition: 0.3s;
-  }
-
-  textarea:focus, input:focus, select:focus {
-    border-color: var(--accent);
-    outline: none;
-    box-shadow: 0 0 0 2px var(--accent + 33);
   }
 
   button {
@@ -143,7 +134,6 @@
 
 <h1>Busca de Palavras em Textos</h1>
 
-<!-- Botão de modo escuro -->
 <button id="themeToggle">
   <span class="material-icons">dark_mode</span>
 </button>
@@ -396,4 +386,69 @@ startTestBtn.onclick = () => {
   const firstKeyword = firstText.keywords[0] || "(nenhuma palavra-chave encontrada)";
 
   currentTest.active = true;
-  currentTest.textIds = selectedText
+  currentTest.textIds = selectedTextIds;
+  currentTest.keyword = firstKeyword;
+
+  showOccurrencesBtn.disabled = false;
+  endTestBtn.disabled = false;
+
+  resultsEl.innerHTML =
+    `<p><strong>Teste iniciado</strong></p>
+     <p>Palavra‑chave: <strong>${firstKeyword}</strong></p>`;
+};
+
+function highlightOccurrences(text, keywords) {
+  let result = text;
+  keywords.forEach(kw => {
+    const escaped = kw.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const regex = new RegExp(escaped, "gi");
+    result = result.replace(regex, m => `<span class="highlight">${m}</span>`);
+  });
+  return result;
+}
+
+showOccurrencesBtn.onclick = () => {
+  if (!currentTest.active) {
+    alert("Nenhum teste ativo.");
+    return;
+  }
+
+  const kw = currentTest.keyword;
+  resultsEl.innerHTML = "";
+
+  currentTest.textIds.forEach(id => {
+    const t = texts[id];
+
+    const block = document.createElement("div");
+    block.className = "text-block";
+
+    block.innerHTML =
+      `<strong>${t.title}</strong><br>` +
+      highlightOccurrences(t.content, [kw]);
+
+    resultsEl.appendChild(block);
+  });
+};
+
+endTestBtn.onclick = () => {
+  currentTest.active = false;
+  currentTest.textIds = [];
+  currentTest.keyword = "";
+
+  showOccurrencesBtn.disabled = true;
+  endTestBtn.disabled = true;
+
+  resultsEl.innerHTML = "<p>Teste encerrado.</p>";
+
+  textsSelectListEl.querySelectorAll("input[type='checkbox']").forEach(cb => {
+    cb.checked = false;
+  });
+};
+
+/* INICIALIZAÇÃO */
+texts = loadLocalTexts();
+renderTexts();
+</script>
+
+</body>
+</html>
