@@ -274,21 +274,25 @@ async function carregarTextosDaPasta() {
       const raw = await file.text();
       const linhas = raw.split("\n");
 
-      let titulo = "";
+      let tituloBruto = "";
+      let termosTitulo = [];
       let palavras = [];
       let conteudo = "";
 
       if (linhas[0].startsWith("#TITULO:")) {
-        titulo = linhas[0].replace("#TITULO:", "").trim();
+        tituloBruto = linhas[0].replace("#TITULO:", "").trim();
+        termosTitulo = tituloBruto.split(";").map(t => t.trim()).filter(t => t);
 
         palavras = linhas[1]
           .replace("#PALAVRAS:", "")
           .split(",")
-          .map(p => p.trim());
+          .map(p => p.trim())
+          .filter(p => p);
 
         conteudo = linhas.slice(2).join("\n");
       } else {
-        titulo = entry.name.replace(".txt", "");
+        tituloBruto = entry.name.replace(".txt", "");
+        termosTitulo = [tituloBruto];
         conteudo = raw.trim();
 
         const palavrasTexto = conteudo.split(/\s+/);
@@ -297,7 +301,12 @@ async function carregarTextosDaPasta() {
           : ["sem_palavra"];
       }
 
-      texts.push({ title: titulo, keywords: palavras, content: conteudo });
+      texts.push({
+        title: tituloBruto,
+        termosTitulo,
+        keywords: palavras,
+        content: conteudo
+      });
     }
   }
 
@@ -357,7 +366,7 @@ saveTextBtn.onclick = () => {
     return;
   }
 
-  texts.push({ title, keywords, content });
+  texts.push({ title, termosTitulo: [title], keywords, content });
   renderTexts();
   alert("Texto adicionado. Use 'Salvar todos os textos' para gravar.");
 };
@@ -398,7 +407,7 @@ function renderTexts() {
   });
 }
 
-/* TESTE */
+/* ESCOLHER TERMO ALEATÓRIO */
 startTestBtn.onclick = () => {
   const selectedTextIds = Array.from(
     textsSelectListEl.querySelectorAll("input[type='checkbox']:checked")
@@ -410,20 +419,52 @@ startTestBtn.onclick = () => {
   }
 
   const firstText = texts[selectedTextIds[0]];
-  const firstKeyword = firstText.keywords[0] || "(nenhuma palavra-chave encontrada)";
+  const termos = firstText.termosTitulo || [];
+
+  if (termos.length === 0) {
+    alert("O texto não possui termos no #TITULO:");
+    return;
+  }
+
+  const termoEscolhido = termos[Math.floor(Math.random() * termos.length)];
 
   currentTest.active = true;
   currentTest.textIds = selectedTextIds;
-  currentTest.keyword = firstKeyword;
+  currentTest.keyword = termoEscolhido;
 
   showOccurrencesBtn.disabled = false;
   endTestBtn.disabled = false;
 
   resultsEl.innerHTML =
     `<p><strong>Teste iniciado</strong></p>
-     <p>Palavra‑chave: <strong>${firstKeyword}</strong></p>`;
+     <p>Termo sorteado: <strong>${termoEscolhido}</strong></p>`;
 };
 
+/* EXTRAIR TRECHOS */
+function extrairTrechos(texto, termo) {
+  const termoLower = termo.toLowerCase();
+  const textoLower = texto.toLowerCase();
+
+  const trechos = [];
+  let pos = 0;
+
+  while (true) {
+    const idx = textoLower.indexOf(termoLower, pos);
+    if (idx === -1) break;
+
+    const inicio = Math.max(0, idx - 60);
+    const fim = Math.min(texto.length, idx + termo.length + 60);
+
+    const trecho = texto.substring(inicio, fim);
+
+    trechos.push(trecho);
+    pos = idx + termo.length;
+  }
+
+  return trechos;
+}
+
+/* DESTACAR */
 function highlightOccurrences(text, keywords) {
   let result = text;
   keywords.forEach(kw => {
@@ -434,29 +475,49 @@ function highlightOccurrences(text, keywords) {
   return result;
 }
 
+/* MOSTRAR APENAS TRECHOS */
 showOccurrencesBtn.onclick = () => {
   if (!currentTest.active) {
     alert("Nenhum teste ativo.");
     return;
   }
 
-  const kw = currentTest.keyword;
+  const termo = currentTest.keyword;
   resultsEl.innerHTML = "";
+
+  let totalEncontrados = 0;
 
   currentTest.textIds.forEach(id => {
     const t = texts[id];
 
-    const block = document.createElement("div");
-    block.className = "text-block";
+    const trechos = extrairTrechos(t.content, termo);
 
-    block.innerHTML =
-      `<strong>${t.title}</strong><br>` +
-      highlightOccurrences(t.content, [kw]);
+    if (trechos.length > 0) {
+      totalEncontrados++;
 
-    resultsEl.appendChild(block);
+      const bloco = document.createElement("div");
+      bloco.className = "text-block";
+
+      let html = `<strong>${t.title}</strong><br><ul>`;
+
+      trechos.forEach(tr => {
+        html += `<li>${highlightOccurrences(tr, [termo])}</li>`;
+      });
+
+      html += "</ul>";
+
+      bloco.innerHTML = html;
+      resultsEl.appendChild(bloco);
+    }
   });
+
+  if (totalEncontrados === 0) {
+    resultsEl.innerHTML =
+      `<p>Nenhum trecho contém o termo <strong>${termo}</strong>.</p>`;
+  }
 };
 
+/* ENCERRAR TESTE */
 endTestBtn.onclick = () => {
   currentTest.active = false;
   currentTest.textIds = [];
