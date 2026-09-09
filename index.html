@@ -191,6 +191,7 @@
 let storageMode = "local";
 let folderHandle = null;
 let texts = [];
+let termosUsados = [];
 let currentTest = { active: false, textIds: [], keyword: "" };
 
 const LOCAL_KEY = "app_texts_txt";
@@ -275,13 +276,11 @@ async function carregarTextosDaPasta() {
       const linhas = raw.split("\n");
 
       let tituloBruto = "";
-      let termosTitulo = [];
       let palavras = [];
       let conteudo = "";
 
       if (linhas[0].startsWith("#TITULO:")) {
         tituloBruto = linhas[0].replace("#TITULO:", "").trim();
-        termosTitulo = tituloBruto.split(";").map(t => t.trim()).filter(t => t);
 
         palavras = linhas[1]
           .replace("#PALAVRAS:", "")
@@ -292,7 +291,6 @@ async function carregarTextosDaPasta() {
         conteudo = linhas.slice(2).join("\n");
       } else {
         tituloBruto = entry.name.replace(".txt", "");
-        termosTitulo = [tituloBruto];
         conteudo = raw.trim();
 
         const palavrasTexto = conteudo.split(/\s+/);
@@ -303,7 +301,6 @@ async function carregarTextosDaPasta() {
 
       texts.push({
         title: tituloBruto,
-        termosTitulo,
         keywords: palavras,
         content: conteudo
       });
@@ -366,7 +363,7 @@ saveTextBtn.onclick = () => {
     return;
   }
 
-  texts.push({ title, termosTitulo: [title], keywords, content });
+  texts.push({ title, keywords, content });
   renderTexts();
   alert("Texto adicionado. Use 'Salvar todos os textos' para gravar.");
 };
@@ -407,7 +404,7 @@ function renderTexts() {
   });
 }
 
-/* ESCOLHER TERMO ALEATÓRIO */
+/* ESCOLHER TERMO ALEATÓRIO SEM REPETIR */
 startTestBtn.onclick = () => {
   const selectedTextIds = Array.from(
     textsSelectListEl.querySelectorAll("input[type='checkbox']:checked")
@@ -418,15 +415,25 @@ startTestBtn.onclick = () => {
     return;
   }
 
-  const firstText = texts[selectedTextIds[0]];
-  const termos = firstText.termosTitulo || [];
+  let todasPalavras = [];
+  selectedTextIds.forEach(id => {
+    todasPalavras = todasPalavras.concat(texts[id].keywords);
+  });
 
-  if (termos.length === 0) {
-    alert("O texto não possui termos no #TITULO:");
-    return;
+  todasPalavras = [...new Set(todasPalavras)];
+
+  const disponiveis = todasPalavras.filter(p => !termosUsados.includes(p));
+
+  let termoEscolhido;
+
+  if (disponiveis.length === 0) {
+    termosUsados = [];
+    termoEscolhido = todasPalavras[Math.floor(Math.random() * todasPalavras.length)];
+  } else {
+    termoEscolhido = disponiveis[Math.floor(Math.random() * disponiveis.length)];
   }
 
-  const termoEscolhido = termos[Math.floor(Math.random() * termos.length)];
+  termosUsados.push(termoEscolhido);
 
   currentTest.active = true;
   currentTest.textIds = selectedTextIds;
@@ -531,6 +538,8 @@ endTestBtn.onclick = () => {
   textsSelectListEl.querySelectorAll("input[type='checkbox']").forEach(cb => {
     cb.checked = false;
   });
+
+  termosUsados = [];
 };
 
 /* INICIALIZAÇÃO */
