@@ -224,10 +224,16 @@ async function escolherPasta() {
   }
 }
 
-/* SALVAR TXT */
+/* SALVAR TXT NA PASTA */
 async function salvarTextosNaPasta(texts) {
   if (!folderHandle) {
     alert("Escolha a pasta primeiro.");
+    return;
+  }
+
+  const perm = await folderHandle.requestPermission({ mode: "readwrite" });
+  if (perm !== "granted") {
+    alert("Permissão negada para salvar na pasta.");
     return;
   }
 
@@ -247,17 +253,16 @@ async function salvarTextosNaPasta(texts) {
   alert("Arquivos TXT salvos!");
 }
 
-/* CARREGAR TXT — AGORA LÊ ARQUIVOS ANTIGOS E NOVOS */
+/* CARREGAR TXT — LÊ ANTIGOS E NOVOS, PADRÃO E EXTERNOS */
 async function carregarTextosDaPasta() {
   if (!folderHandle) {
     alert("Escolha a pasta primeiro.");
     return [];
   }
 
-  // Solicita permissão explícita para ler TODOS os arquivos da pasta
-  const perm = await folderHandle.requestPermission({ mode: "readwrite" });
+  const perm = await folderHandle.requestPermission({ mode: "read" });
   if (perm !== "granted") {
-    alert("Permissão negada. O aplicativo não pode ler os arquivos.");
+    alert("Permissão negada para ler a pasta.");
     return [];
   }
 
@@ -273,7 +278,6 @@ async function carregarTextosDaPasta() {
       let palavras = [];
       let conteudo = "";
 
-      /* Caso 1: arquivo segue o padrão */
       if (linhas[0].startsWith("#TITULO:")) {
         titulo = linhas[0].replace("#TITULO:", "").trim();
 
@@ -283,15 +287,11 @@ async function carregarTextosDaPasta() {
           .map(p => p.trim());
 
         conteudo = linhas.slice(2).join("\n");
-      }
-
-      /* Caso 2: arquivo externo comum */
-      else {
+      } else {
         titulo = entry.name.replace(".txt", "");
         conteudo = raw.trim();
 
         const palavrasTexto = conteudo.split(/\s+/);
-
         palavras = palavrasTexto.length > 0
           ? [palavrasTexto[0]]
           : ["sem_palavra"];
@@ -304,9 +304,178 @@ async function carregarTextosDaPasta() {
   return texts;
 }
 
-
-/* SALVAR / CARREGAR */
+/* SALVAR / CARREGAR (ABSTRAÇÃO) */
 async function salvarTextos(textsToSave) {
   if (storageMode === "local") {
     saveLocalTexts(textsToSave);
-    alert("Textos salvos local
+    alert("Textos salvos localmente!");
+  } else {
+    await salvarTextosNaPasta(textsToSave);
+  }
+}
+
+async function carregarTextos() {
+  if (storageMode === "local") {
+    return loadLocalTexts();
+  } else {
+    return await carregarTextosDaPasta();
+  }
+}
+
+/* ELEMENTOS */
+const storageSelectEl = document.getElementById("storageSelect");
+const chooseFolderBtn = document.getElementById("chooseFolderBtn");
+
+const textTitleEl = document.getElementById("textTitle");
+const textKeywordsEl = document.getElementById("textKeywords");
+const textContentEl = document.getElementById("textContent");
+
+const saveTextBtn = document.getElementById("saveTextBtn");
+const clearTextFormBtn = document.getElementById("clearTextFormBtn");
+const loadTextsBtn = document.getElementById("loadTextsBtn");
+const saveAllTextsBtn = document.getElementById("saveAllTextsBtn");
+
+const textsListEl = document.getElementById("textsList");
+const textsSelectListEl = document.getElementById("textsSelectList");
+
+const startTestBtn = document.getElementById("startTestBtn");
+const showOccurrencesBtn = document.getElementById("showOccurrencesBtn");
+const endTestBtn = document.getElementById("endTestBtn");
+const resultsEl = document.getElementById("results");
+
+/* EVENTOS */
+storageSelectEl.onchange = (e) => storageMode = e.target.value;
+chooseFolderBtn.onclick = escolherPasta;
+
+saveTextBtn.onclick = () => {
+  const title = textTitleEl.value.trim();
+  const keywords = textKeywordsEl.value.split(",").map(k => k.trim()).filter(k => k);
+  const content = textContentEl.value;
+
+  if (!title || !content) {
+    alert("Título e conteúdo são obrigatórios.");
+    return;
+  }
+
+  texts.push({ title, keywords, content });
+  renderTexts();
+  alert("Texto adicionado. Use 'Salvar todos os textos' para gravar.");
+};
+
+clearTextFormBtn.onclick = () => {
+  textTitleEl.value = "";
+  textKeywordsEl.value = "";
+  textContentEl.value = "";
+};
+
+loadTextsBtn.onclick = async () => {
+  texts = await carregarTextos();
+  renderTexts();
+  alert("Textos carregados!");
+};
+
+saveAllTextsBtn.onclick = async () => {
+  await salvarTextos(texts);
+};
+
+/* RENDERIZAÇÃO DE LISTAS */
+function renderTexts() {
+  textsListEl.innerHTML = "";
+  textsSelectListEl.innerHTML = "";
+
+  texts.forEach((t, index) => {
+    const div = document.createElement("div");
+    div.textContent = `${index} - ${t.title}`;
+    textsListEl.appendChild(div);
+
+    const label = document.createElement("label");
+    const chk = document.createElement("input");
+    chk.type = "checkbox";
+    chk.value = index;
+    label.appendChild(chk);
+    label.appendChild(document.createTextNode(" " + t.title));
+    textsSelectListEl.appendChild(label);
+  });
+}
+
+/* TESTE */
+startTestBtn.onclick = () => {
+  const selectedTextIds = Array.from(
+    textsSelectListEl.querySelectorAll("input[type='checkbox']:checked")
+  ).map(cb => Number(cb.value));
+
+  if (selectedTextIds.length === 0) {
+    alert("Selecione pelo menos um texto.");
+    return;
+  }
+
+  const firstText = texts[selectedTextIds[0]];
+  const firstKeyword = firstText.keywords[0] || "(nenhuma palavra-chave encontrada)";
+
+  currentTest.active = true;
+  currentTest.textIds = selectedTextIds;
+  currentTest.keyword = firstKeyword;
+
+  showOccurrencesBtn.disabled = false;
+  endTestBtn.disabled = false;
+
+  resultsEl.innerHTML =
+    `<p><strong>Teste iniciado</strong></p>
+     <p>Palavra‑chave: <strong>${firstKeyword}</strong></p>`;
+};
+
+function highlightOccurrences(text, keywords) {
+  let result = text;
+  keywords.forEach(kw => {
+    const escaped = kw.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const regex = new RegExp(escaped, "gi");
+    result = result.replace(regex, m => `<span class="highlight">${m}</span>`);
+  });
+  return result;
+}
+
+showOccurrencesBtn.onclick = () => {
+  if (!currentTest.active) {
+    alert("Nenhum teste ativo.");
+    return;
+  }
+
+  const kw = currentTest.keyword;
+  resultsEl.innerHTML = "";
+
+  currentTest.textIds.forEach(id => {
+    const t = texts[id];
+
+    const block = document.createElement("div");
+    block.className = "text-block";
+
+    block.innerHTML =
+      `<strong>${t.title}</strong><br>` +
+      highlightOccurrences(t.content, [kw]);
+
+    resultsEl.appendChild(block);
+  });
+};
+
+endTestBtn.onclick = () => {
+  currentTest.active = false;
+  currentTest.textIds = [];
+  currentTest.keyword = "";
+
+  showOccurrencesBtn.disabled = true;
+  endTestBtn.disabled = true;
+
+  resultsEl.innerHTML = "<p>Teste encerrado.</p>";
+
+  textsSelectListEl.querySelectorAll("input[type='checkbox']").forEach(cb => {
+    cb.checked = false;
+  });
+};
+
+/* INICIALIZAÇÃO */
+texts = loadLocalTexts();
+renderTexts();
+</script>
+
+</body>
+</html>
